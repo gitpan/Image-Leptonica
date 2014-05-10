@@ -1,6 +1,6 @@
 package Image::Leptonica;
 # ABSTRACT: bindings to the Leptonica image processing library
-$Image::Leptonica::VERSION = '0.01';
+$Image::Leptonica::VERSION = '0.02';
 use strict;
 use warnings;
 
@@ -8,25 +8,37 @@ use File::Spec::Functions qw(catfile);
 use Path::Class;
 use Alien::Leptonica;
 use Inline;
+use ExtUtils::Depends;
 
-our $alien = Alien::Leptonica->new;
-
-my $leptonica_h = file(__FILE__)->dir
+our $leptonica_h = file(__FILE__)->dir
 	->file('leptonica.h')
 	->slurp();
 
 Inline->bind( C => $leptonica_h =>
 	NAME => 'Image::Leptonica' =>
 	VERSION => $Image::Leptonica::VERSION =>
-	INC => $alien->cflags, LIBS => $alien->libs =>
+	%{ Image::Leptonica::Alien('C') },
 	ENABLE => AUTOWRAP =>
-	AUTO_INCLUDE => '#include "allheaders.h"' =>
 	BOOT => <<'END_BOOT_C'
 		HV *stash = gv_stashpvn ("Image::Leptonica::FileFormat", strlen("Image::Leptonica::FileFormat"), TRUE);
 		newCONSTSUB(stash, "IFF_PNM", newSViv (IFF_PNM));
 		newCONSTSUB(stash, "IFF_PNG", newSViv (IFF_PNG));
 END_BOOT_C
 	);
+
+sub Alien {
+	our $alien = Alien::Leptonica->new;
+	Alien::Leptonica::Inline(@_);
+}
+
+sub Inline {
+	return unless $_[0] eq 'C';
+	our $info = ExtUtils::Depends::load('Image::Leptonica');
+	+{
+		%{ Image::Leptonica::Alien(@_) },
+		TYPEMAPS  => $info->{typemaps},
+	};
+}
 
 1;
 
@@ -42,7 +54,7 @@ Image::Leptonica - bindings to the Leptonica image processing library
 
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 SYNOPSIS
 
@@ -54,6 +66,10 @@ version 0.01
 
 This module binds to all the functions in the Leptonica image processing
 library. It provides a very raw interface to the C functions.
+
+=head1 Inline support
+
+This module supports L<Inline's with functionality|Inline/"Playing 'with' Others">.
 
 =head1 SEE ALSO
 

@@ -17,7 +17,9 @@ my %WriteMakefileArgs = (
   "AUTHOR" => "Zakariyya Mughal <zmughal\@cpan.org>",
   "BUILD_REQUIRES" => {},
   "CONFIGURE_REQUIRES" => {
-    "ExtUtils::MakeMaker" => "6.30"
+    "Alien::Leptonica" => 0,
+    "ExtUtils::MakeMaker" => "6.30",
+    "Inline::MakeMaker" => "0.45"
   },
   "DISTNAME" => "Image-Leptonica",
   "EXE_FILES" => [],
@@ -25,6 +27,7 @@ my %WriteMakefileArgs = (
   "NAME" => "Image::Leptonica",
   "PREREQ_PM" => {
     "Alien::Leptonica" => 0,
+    "ExtUtils::Depends" => 0,
     "ExtUtils::MakeMaker" => "6.52",
     "File::Spec::Functions" => 0,
     "Inline" => 0,
@@ -34,27 +37,49 @@ my %WriteMakefileArgs = (
     "warnings" => 0
   },
   "TEST_REQUIRES" => {
+    "Module::Load" => 0,
     "Test::More" => 0
   },
-  "VERSION" => "0.01",
+  "VERSION" => "0.02",
   "test" => {
     "TESTS" => "t/*.t"
   }
 );
 use Inline::MakeMaker;
+use ExtUtils::Depends;
+use File::Spec::Functions;
+use File::Path qw(make_path);
+use File::Copy;
 $WriteMakefileArgs{CONFIGURE} = sub {
 	require Alien::Leptonica;
 	my $l = Alien::Leptonica->new;
-	+{ CCFLAGS => $l->cflags, LIBS => $l->libs };
+	my $pkg = ExtUtils::Depends->new('Image::Leptonica',);
+	$pkg->set_inc( $l->cflags );
+	$pkg->set_libs( $l->libs );
+	$pkg->add_typemaps( 'typemap' );
+
+	# make path to install to
+	my @dir = qw( lib Image Leptonica Install );
+	make_path catfile @dir;
+	# copy typemap into that path
+	copy( 'typemap', catfile( @dir, 'typemap') );
+	# save config to that path
+	$pkg->save_config( catfile( @dir, 'Files.pm' ) );
+
+	+{ CCFLAGS => $l->cflags,
+	   LIBS => $l->libs,
+	   $pkg->get_makefile_vars()  };
 };
 
 
 my %FallbackPrereqs = (
   "Alien::Leptonica" => 0,
+  "ExtUtils::Depends" => 0,
   "ExtUtils::MakeMaker" => "6.52",
   "File::Spec::Functions" => 0,
   "Inline" => 0,
   "Inline::MakeMaker" => "0.45",
+  "Module::Load" => 0,
   "Path::Class" => 0,
   "Test::More" => 0,
   "strict" => 0,
