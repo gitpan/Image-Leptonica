@@ -1,6 +1,6 @@
 package Image::Leptonica;
 # ABSTRACT: bindings to the Leptonica image processing library
-$Image::Leptonica::VERSION = '0.02';
+$Image::Leptonica::VERSION = '0.03';
 use strict;
 use warnings;
 
@@ -11,13 +11,14 @@ use Inline;
 use ExtUtils::Depends;
 
 our $leptonica_h = file(__FILE__)->dir
+	->subdir('Leptonica')
 	->file('leptonica.h')
 	->slurp();
 
 Inline->bind( C => $leptonica_h =>
 	NAME => 'Image::Leptonica' =>
 	VERSION => $Image::Leptonica::VERSION =>
-	%{ Image::Leptonica::Alien('C') },
+	%{ Image::Leptonica::Inline('C') },
 	ENABLE => AUTOWRAP =>
 	BOOT => <<'END_BOOT_C'
 		HV *stash = gv_stashpvn ("Image::Leptonica::FileFormat", strlen("Image::Leptonica::FileFormat"), TRUE);
@@ -31,6 +32,7 @@ sub Alien {
 	Alien::Leptonica::Inline(@_);
 }
 
+
 sub Inline {
 	return unless $_[0] eq 'C';
 	our $info = ExtUtils::Depends::load('Image::Leptonica');
@@ -39,6 +41,7 @@ sub Inline {
 		TYPEMAPS  => $info->{typemaps},
 	};
 }
+
 
 1;
 
@@ -54,7 +57,7 @@ Image::Leptonica - bindings to the Leptonica image processing library
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 SYNOPSIS
 
